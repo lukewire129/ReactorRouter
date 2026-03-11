@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/ReactorRouterSample/ReactorRouterSample.csproj" Id="b4305095-62a2-4eff-99d0-01dff5f7f24d">
+      <Deploy Solution="Debug|*" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ReactorRouter/ReactorRouter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReactorRouter.Tests/ReactorRouter.Tests.csproj" />
+  </Folder>
+</Solution>

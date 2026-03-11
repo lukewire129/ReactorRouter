@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net9.0-android;net9.0-ios;net9.0-maccatalyst;net9.0-windows10.0.19041.0</TargetFrameworks>
+    <UseMaui Condition="$(TargetFramework) != 'net9.0'">true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-android' Or '$(TargetFramework)' == 'net9.0-ios' Or '$(TargetFramework)' == 'net9.0-maccatalyst' Or '$(TargetFramework)' == 'net9.0-windows10.0.19041.0'">
+    <PackageReference Include="Reactor.Maui" Version="3.0.40" />
+  </ItemGroup>
+</Project>
