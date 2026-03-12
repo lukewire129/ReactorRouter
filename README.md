@@ -1,4 +1,6 @@
 # ReactorRouter
+[![NuGet](https://img.shields.io/nuget/v/ReactorRouter.svg)](https://www.nuget.org/packages/ReactorRouter/) 
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ReactorRouter.svg)](https://www.nuget.org/packages/ReactorRouter/)
 
 ReactorRouter is a lightweight routing library for .NET MAUI Reactor applications. It provides a declarative way to handle navigation, nested routes, and route transitions.
 
@@ -114,3 +116,8 @@ class ProfilePage : Component
     // ...
 }
 ```
+
+
+https://github.com/user-attachments/assets/32ee9ae8-65f8-4e9d-b998-6ed2879aea19
+
+
