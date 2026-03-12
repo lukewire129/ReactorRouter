@@ -39,6 +39,7 @@ jobs:
           -o nupkgs
 
       - name: Push to NuGet
+        shell: bash
         run: >
           dotnet nuget push nupkgs/*.nupkg
           --api-key ${{ secrets.NUGET_API_KEY }}
