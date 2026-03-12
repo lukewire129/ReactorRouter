@@ -1,5 +1,3 @@
-using MauiReactor;
-
 namespace ReactorRouter.Components;
 
 /// <summary>
@@ -8,8 +6,6 @@ namespace ReactorRouter.Components;
 /// </summary>
 public partial class Outlet : Component<OutletState>
 {
-    private int _assignedDepth = -1;
-
     [Prop] private TransitionType _transition = TransitionType.Fade;
     [Prop] private int _duration = 300;
 
@@ -19,21 +15,24 @@ public partial class Outlet : Component<OutletState>
         if (State.IsAnimating)
             SetState(s => { s.PreviousType = null; s.IsAnimating = false; });
 
-        SetState(s => { s.Transition = _transition; s.AnimationDuration = _duration; });
-
-        _assignedDepth = NavigationService.Instance.RegisterOutlet(
-            new OutletRegistration(UpdateRoute));
+        SetState(s =>
+        {
+            s.Transition = _transition;
+            s.AnimationDuration = _duration;
+            s.AssignedDepth = NavigationService.Instance.RegisterOutlet(
+                new OutletRegistration(UpdateRoute));
+        });
     }
 
     protected override void OnWillUnmount()
     {
-        if (_assignedDepth >= 0)
-            NavigationService.Instance.UnregisterOutlet(_assignedDepth);
+        if (State.AssignedDepth >= 0)
+            NavigationService.Instance.UnregisterOutlet(State.AssignedDepth);
     }
 
     internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query)
     {
-        if (componentType == State.CurrentType)
+        if (componentType?.FullName == State.CurrentType?.FullName)
         {
             SetState(s => { s.Params = @params; s.Query = query; });
             return;
@@ -54,14 +53,18 @@ public partial class Outlet : Component<OutletState>
 
         if (shouldAnimate)
         {
-            Task.Delay(State.AnimationDuration + 50)
-                .ContinueWith(_ => SetState(s =>
-                {
-                    s.PreviousType = null;
-                    s.IsAnimating = false;
-                }),
-                TaskScheduler.FromCurrentSynchronizationContext());
+            _ = ClearAnimationAfterDelayAsync(State.AnimationDuration + 50);
         }
+    }
+
+    private async Task ClearAnimationAfterDelayAsync(int delayMs)
+    {
+        await Task.Delay(delayMs).ConfigureAwait(false);
+        SetState(s =>
+        {
+            s.PreviousType = null;
+            s.IsAnimating = false;
+        });
     }
 
     public override VisualNode Render()
@@ -70,26 +73,26 @@ public partial class Outlet : Component<OutletState>
         return Grid(
             State.PreviousType != null
                 ? Grid(CreateComponent(State.PreviousType))
-                    .WithAnimation(duration: State.AnimationDuration)
                     .Opacity(State.IsAnimating ? 0.0 : 1.0)
                     .TranslationX(GetExitTranslationX())
                     .TranslationY(GetExitTranslationY())
                     .Scale(GetExitScale())
+                    .WithAnimation(duration: State.AnimationDuration)
                 : null,
 
-            State.CurrentType != null
+            State.CurrentType != null && State.PreviousType == null
                 ? Grid(CreateComponent(State.CurrentType))
-                    .WithAnimation(duration: State.AnimationDuration)
                     .Opacity(GetEnterOpacity())
                     .TranslationX(GetEnterTranslationX())
                     .TranslationY(GetEnterTranslationY())
                     .Scale(GetEnterScale())
+                    .WithAnimation(duration: State.AnimationDuration)
                 : null
         );
     }
 
     private static VisualNode CreateComponent(Type type) =>
-        (VisualNode)Activator.CreateInstance(type)!;
+        (VisualNode)Activator.CreateInstance(TypeResolver.ResolveLatest(type))!;
 
     private double GetEnterOpacity() => State.Transition switch
     {

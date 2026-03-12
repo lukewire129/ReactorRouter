@@ -53,9 +53,11 @@ public sealed class NavigationService
 
         // If navigation already happened before this Outlet mounted (initial render),
         // immediately hydrate it with the current state so it doesn't start blank.
-        if (depth < _currentMatchChain.Length)
+        // Outlet at depth N renders matchChain[N+1] because Router renders matchChain[0] directly.
+        var chainIndex = depth + 1;
+        if (chainIndex < _currentMatchChain.Length)
         {
-            var match = _currentMatchChain[depth];
+            var match = _currentMatchChain[chainIndex];
             registration.UpdateRoute(match.ComponentType, _currentMergedParams, _currentQuery);
         }
 
@@ -115,18 +117,20 @@ public sealed class NavigationService
         // Notify Router (triggers its SetState)
         ContextChanged?.Invoke(context);
 
-        // Dispatch to each registered outlet
-        for (int depth = 0; depth < matchChain.Length; depth++)
+        // Dispatch to each registered outlet.
+        // Outlet at depth N renders matchChain[N+1] because Router renders matchChain[0] directly.
+        var outletCount = matchChain.Length - 1;
+        for (int depth = 0; depth < outletCount; depth++)
         {
             if (_outlets.TryGetValue(depth, out var outlet))
             {
-                var match = matchChain[depth];
+                var match = matchChain[depth + 1];
                 outlet.UpdateRoute(match.ComponentType, mergedParams, query);
             }
         }
 
         // Clear outlets deeper than the new match chain
-        foreach (var key in _outlets.Keys.Where(k => k >= matchChain.Length))
+        foreach (var key in _outlets.Keys.Where(k => k >= outletCount))
         {
             if (_outlets.TryGetValue(key, out var outlet))
                 outlet.UpdateRoute(null, RouteParams.Empty, RouteQuery.Empty);

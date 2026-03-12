@@ -54,6 +54,6 @@ public partial class Router : Component<RouterState>
             return ContentView();
 
         var rootType = chain[0].ComponentType;
-        return (VisualNode)Activator.CreateInstance(rootType)!;
+        return (VisualNode)Activator.CreateInstance(TypeResolver.ResolveLatest(rootType))!;
     }
 }

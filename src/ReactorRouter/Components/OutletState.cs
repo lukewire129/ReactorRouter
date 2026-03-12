@@ -22,4 +22,7 @@ public class OutletState
 
     /// <summary>Animation duration in milliseconds.</summary>
     public int AnimationDuration { get; set; } = 300;
+
+    /// <summary>Depth assigned by NavigationService when this outlet was registered. -1 = not registered.</summary>
+    public int AssignedDepth { get; set; } = -1;
 }

@@ -1,5 +1,3 @@
-using MauiReactor;
-
 namespace ReactorRouter.Components;
 
 /// <summary>
