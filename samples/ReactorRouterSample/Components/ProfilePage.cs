@@ -1,4 +1,5 @@
 ﻿using MauiReactor.Parameters;
+
 namespace ReactorRouterSample.Components;
 
 /// <summary>
@@ -23,7 +24,7 @@ public partial class ProfilePage : Component
             // Route param demo
             Border (
                 VStack (
-                    Label ("Route Parameters")
+                    Label ("Route Parameters!!")
                         .FontSize (12)
                         .TextColor (Microsoft.Maui.Graphics.Colors.Gray),
                     Label ($"userId = \"{userId}\"")

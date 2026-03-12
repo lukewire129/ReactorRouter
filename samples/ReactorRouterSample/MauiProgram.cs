@@ -1,8 +1,4 @@
-﻿using MauiReactor;
-using MauiReactor.HotReload;
-using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Hosting;
-using ReactorRouterSample.Components;
+﻿using ReactorRouterSample.Components;
 using ReactorRouterSample.Resources.Styles;
 
 namespace ReactorRouterSample
@@ -11,24 +7,25 @@ namespace ReactorRouterSample
     {
         public static MauiApp CreateMauiApp()
         {
-            var builder = MauiApp.CreateBuilder ();
+            var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiReactorApp<MainPage> (app =>
+                .UseMauiReactorApp<MainPage>(app =>
                     {
-                        app.UseTheme<ApplicationTheme> ();
+                        app.UseTheme<ApplicationTheme>();
                     },
                     unhandledExceptionAction: e =>
                     {
-                        System.Diagnostics.Debug.WriteLine (e.ExceptionObject);
+                        System.Diagnostics.Debug.WriteLine(e.ExceptionObject);
                     })
-                .ConfigureFonts (fonts =>
+                .UseMauiReactorHotReload()
+                .ConfigureFonts(fonts =>
                 {
-                    fonts.AddFont ("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont ("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
 
-            return builder.Build ();
+            return builder.Build();
         }
     }
 }

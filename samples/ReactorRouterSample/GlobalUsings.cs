@@ -1,4 +1,5 @@
 ﻿global using MauiReactor;
+global using MauiReactor.HotReload;
 global using Microsoft.Maui;
 global using Microsoft.Maui.Graphics;
 global using Microsoft.Maui.Hosting;

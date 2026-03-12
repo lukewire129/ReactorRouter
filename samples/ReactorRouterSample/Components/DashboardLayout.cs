@@ -8,11 +8,17 @@ public class DashboardLayout : Component
 {
     public override VisualNode Render()
          => Grid (rows: "50, *", columns: "160, *",
+             // ── Content area: child routes animate here ──
+             new Outlet ()
+                 .Transition (TransitionType.SlideLeft)
+                 .Duration (300)
+                 .GridRow (1)
+                 .GridColumn (1),
 
              // ── Top NavBar (spans both columns) ──
              Border (
                  HStack (
-                     Label ("ReactorRouter")
+                     Label ("ReactorRouter!!!")
                          .FontSize (16)
                          .FontAttributes (Microsoft.Maui.Controls.FontAttributes.Bold)
                          .TextColor (Microsoft.Maui.Graphics.Colors.White)
@@ -41,14 +47,7 @@ public class DashboardLayout : Component
                  .Padding (8)
              )
              .BackgroundColor (Microsoft.Maui.Graphics.Color.FromArgb ("#F5F5F5"))
-             .GridRow (1),
-
-             // ── Content area: child routes animate here ──
-             new Outlet ()
-                 .Transition (TransitionType.SlideLeft)
-                 .Duration (300)
-                 .GridRow (1)
-                 .GridColumn (1)
+             .GridRow (1)
          );
 
     private static VisualNode NavButton(string text, string path)
