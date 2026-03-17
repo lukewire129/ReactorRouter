@@ -92,7 +92,7 @@ public partial class Outlet : Component<OutletState>
     }
 
     private static VisualNode CreateComponent(Type type) =>
-        (VisualNode)Activator.CreateInstance(TypeResolver.ResolveLatest(type))!;
+        ComponentFactory.Create(type);
 
     private double GetEnterOpacity() => State.Transition switch
     {

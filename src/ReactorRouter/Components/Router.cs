@@ -21,10 +21,15 @@ public partial class Router : Component<RouterState>
 
     protected override void OnMounted()
     {
-        NavigationService.Instance.Initialize (_routes);
+        // UseReactorRouter() config takes priority; fall back to [Prop] for backwards compat
+        var config = ReactorRouterConfig.Current;
+        var routes = config?.RouteDefinitions ?? _routes;
+        var initialPath = config?.InitialRoute ?? _initialPath;
+
+        NavigationService.Instance.Initialize(routes);
         NavigationService.Instance.ContextChanged += OnContextChanged;
 
-        NavigationService.Instance.NavigateInitial(_initialPath);
+        NavigationService.Instance.NavigateInitial(initialPath);
     }
 
     protected override void OnWillUnmount()
@@ -54,6 +59,6 @@ public partial class Router : Component<RouterState>
             return ContentView();
 
         var rootType = chain[0].ComponentType;
-        return (VisualNode)Activator.CreateInstance(TypeResolver.ResolveLatest(rootType))!;
+        return ComponentFactory.Create(rootType);
     }
 }

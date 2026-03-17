@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(find C:/Users/dm/.nuget/packages/reactor.maui -type f \\\\\\(-name *.cs -o -name *.json \\\\\\))",
+      "Bash(find C:/Users/dm/.nuget/packages/reactor.maui -name *.xml -type f)",
+      "Bash(unzip -l reactor.maui.4.0.15.nupkg)",
+      "Bash(cd /tmp)",
+      "Bash(unzip -q \"C:/Users/dm/.nuget/packages/reactor.maui/4.0.15/reactor.maui.4.0.15.nupkg\")",
+      "Read(//tmp/**)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)"
+    ]
+  }
+}
