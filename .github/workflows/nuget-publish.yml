@@ -9,7 +9,7 @@ jobs:
   publish:
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
@@ -45,3 +45,15 @@ jobs:
           --api-key ${{ secrets.NUGET_API_KEY }}
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${{ github.ref_name }}" --json id > /dev/null 2>&1 \
+            && gh release upload "${{ github.ref_name }}" nupkgs/*.nupkg --clobber \
+            || gh release create "${{ github.ref_name }}" \
+               --title "${{ github.ref_name }}" \
+               --generate-notes \
+               nupkgs/*.nupkg

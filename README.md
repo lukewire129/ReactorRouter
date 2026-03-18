@@ -102,22 +102,71 @@ NavigationService.Instance.NavigateTo("/profile/123");
 
 ## Route Parameters
 
-You can define parameters in your route path using `:paramName`. These are passed to the component constructor if it accepts them.
+You can define parameters in your route path using `:paramName` and access query strings with `?key=value`.
+
+ReactorRouter supports **two approaches** for reading route/query parameters depending on how your component is structured.
+
+---
+
+### Approach 1: `[Param] IParameter<RouterContext>` (Field Injection)
+
+Use this when your component does **not** need a custom constructor. The `RouterContext` is injected automatically as a field parameter.
 
 ```csharp
 // Route definition
 new RouteDefinition("profile/:userId", typeof(ProfilePage))
 
 // Component
-class ProfilePage : Component
+public partial class ProfilePage : Component
 {
-    private string _userId;
-    public ProfilePage(string userId) => _userId = userId;
-    // ...
+    [Param] IParameter<RouterContext> _ctx;
+
+    public override VisualNode Render()
+    {
+        var userId = _ctx.Value.Params.GetOrDefault("userId", "unknown");
+        var tab = _ctx.Value.Query.GetOrDefault("tab", "overview");
+        // ...
+    }
 }
 ```
 
+---
 
-https://github.com/user-attachments/assets/32ee9ae8-65f8-4e9d-b998-6ed2879aea19
+### Approach 2: `RouteHooks` (Static API, Constructor-Friendly)
+
+Use this when your component **requires a custom constructor**. Since `[Param]` is field-level injection and cannot be used inside a constructor, `RouteHooks` provides a static API that can be called anywhere ? including constructors.
+
+```csharp
+// Route definition
+new RouteDefinition("profile/:userId", typeof(ProfilePage))
+
+// Component
+public class ProfilePage : Component
+{
+    private readonly string _userId;
+    private readonly string _tab;
+
+    public ProfilePage()
+    {
+        _userId = RouteHooks.UseRouteParams().GetOrDefault("userId", "unknown");
+        _tab = RouteHooks.UseRouteQuery().GetOrDefault("tab", "overview");
+    }
+
+    public override VisualNode Render()
+    {
+        // use _userId, _tab ...
+    }
+}
+```
+
+---
+
+> **Which one should I use?**
+> - No custom constructor needed ¡æ use `[Param] IParameter<RouterContext>` (less boilerplate)
+> - Custom constructor required ¡æ use `RouteHooks` (more flexible)
+
+## Conclusion
+
+ReactorRouter simplifies routing in .NET MAUI applications, allowing developers to create intuitive navigation experiences with minimal effort. For more information, check the [documentation](https://github.com/user-attachments/assets/32ee9ae8-65f8-4e9d-b998-6ed2879aea19).
 
 
