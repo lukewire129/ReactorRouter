@@ -80,8 +80,9 @@ public partial class Outlet : Component<OutletState>
                     .WithAnimation(duration: State.AnimationDuration)
                 : null,
 
-            State.CurrentType != null && State.PreviousType == null
+            State.CurrentType != null
                 ? Grid(CreateComponent(State.CurrentType))
+                    .IsVisible(!State.IsAnimating)
                     .Opacity(GetEnterOpacity())
                     .TranslationX(GetEnterTranslationX())
                     .TranslationY(GetEnterTranslationY())
