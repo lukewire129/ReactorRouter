@@ -12,7 +12,7 @@ public sealed class NavigationService
         new(() => new NavigationService());
 
     public static NavigationService Instance => _instance.Value;
-
+   
     private NavigationService() { }
 
     // Route definitions — set once by Router on mount
@@ -34,7 +34,8 @@ public sealed class NavigationService
 
     public string CurrentPath { get; private set; } = "/";
     public bool CanGoBack => _history.Count > 1;
-
+    public RouteParams CurrentParams => _currentMergedParams;
+    public RouteQuery CurrentQuery => _currentQuery;
     /// <summary>Called by Router on mount to supply the route definitions.</summary>
     internal void Initialize(IReadOnlyList<RouteDefinition> routes)
     {
