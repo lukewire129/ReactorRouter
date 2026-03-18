@@ -17,34 +17,68 @@ Add the `ReactorRouter` project or NuGet package to your MAUI solution.
 
 ## Getting Started
 
-### 1. Define Your Routes
+### 1. Define Routes & Initialize
 
-Create a route definition array. You can nest routes to create layouts.
+ReactorRouter supports two ways to configure your routes: using the **App Builder** (cleaner, recommended for larger apps) or the **Component API** (quick start).
+
+#### Option A: App Builder (Recommended)
+
+Configure routes in `MauiProgram.cs`. This keeps your routing logic centralized and separate from your UI code.
+
+**MauiProgram.cs**
+```csharp
+var builder = MauiApp.CreateBuilder();
+builder
+    .UseMauiReactorApp<App>()
+    .UseReactorRouter(r =>
+    {
+        r.Routes(
+            new RouteDefinition("/", typeof(RootLayout),
+                new RouteDefinition("dashboard", typeof(DashboardLayout),
+                    RouteDefinition.Index(typeof(HomePage)),
+                    new RouteDefinition("settings", typeof(SettingsPage))
+                        { Transition = TransitionType.SlideLeft }
+                ),
+                new RouteDefinition("login", typeof(LoginPage))
+                    { Transition = TransitionType.Fade },
+                new RouteDefinition("*", typeof(NotFoundPage)) // Fallback
+            )
+        );
+        r.InitialPath("/dashboard");
+    })
+    .Build();
+```
+
+**App.cs**
+Then, simply instantiate `Router` without arguments in your main component.
 
 ```csharp
+class App : Component
+{
+    public override VisualNode Render()
+        => ContentPage(new Router());
+}
+```
+
+#### Option B: Component API (Quick Start)
+
+Define routes directly in your main component using the fluent API.
+
+```csharp
+// Define routes
 private static readonly RouteDefinition[] Routes =
 [
     new RouteDefinition("/", typeof(RootLayout),
-        // Child routes render inside RootLayout's Outlet
         new RouteDefinition("dashboard", typeof(DashboardLayout),
             RouteDefinition.Index(typeof(HomePage)),
             new RouteDefinition("settings", typeof(SettingsPage))
-                { Transition = TransitionType.SlideLeft },
-            new RouteDefinition("profile/:userId", typeof(ProfilePage))
-                { Transition = TransitionType.Fade }
         ),
-        new RouteDefinition("login", typeof(LoginPage))
-            { Transition = TransitionType.Fade },
-        new RouteDefinition("*", typeof(NotFoundPage)) // Fallback route
+        new RouteDefinition("login", typeof(LoginPage)),
+        new RouteDefinition("*", typeof(NotFoundPage))
     )
 ];
-```
 
-### 2. Initialize the Router
-
-In your main entry component (e.g., `MainPage`), initialize the `Router` with your routes.
-
-```csharp
+// Initialize in Render
 class MainPage : Component
 {
     public override VisualNode Render()
@@ -56,7 +90,7 @@ class MainPage : Component
 }
 ```
 
-### 3. Use Outlet for Nested Content
+### 2. Use Outlet for Nested Content
 
 In your layout components (like `RootLayout` or `DashboardLayout`), use `Outlet` to determine where child routes should be rendered.
 
@@ -162,8 +196,8 @@ public class ProfilePage : Component
 ---
 
 > **Which one should I use?**
-> - No custom constructor needed ¡æ use `[Param] IParameter<RouterContext>` (less boilerplate)
-> - Custom constructor required ¡æ use `RouteHooks` (more flexible)
+> - No custom constructor needed ï¿½ï¿½ use `[Param] IParameter<RouterContext>` (less boilerplate)
+> - Custom constructor required ï¿½ï¿½ use `RouteHooks` (more flexible)
 
 ## Conclusion
 
