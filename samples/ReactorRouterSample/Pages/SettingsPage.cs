@@ -1,4 +1,4 @@
-﻿namespace ReactorRouterSample.Components;
+﻿namespace ReactorRouterSample.Pages;
 
 public class SettingsPageState
 {

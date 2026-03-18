@@ -1,10 +1,10 @@
-﻿namespace ReactorRouterSample.Components;
+﻿namespace ReactorRouterSample.Shared.Layouts;
 
 /// <summary>
 /// Dashboard layout ??? custom sidebar + NavBar, Outlet for child routes.
 /// This is the key demo: the sidebar stays while only the content area animates.
 /// </summary>
-public class DashboardLayout : Component
+public class MainLayout : Component
 {
     public override VisualNode Render()
          => Grid (rows: "50, *", columns: "160, *",

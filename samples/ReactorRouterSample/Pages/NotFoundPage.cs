@@ -1,6 +1,6 @@
 using MauiReactor.Parameters;
 
-namespace ReactorRouterSample.Components;
+namespace ReactorRouterSample.Pages;
 
 public partial class NotFoundPage : Component
 {

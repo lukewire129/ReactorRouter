@@ -1,4 +1,4 @@
-namespace ReactorRouterSample.Components;
+namespace ReactorRouterSample.Shared.Layouts;
 
 /// <summary>
 /// Root layout ??? wraps the entire app.

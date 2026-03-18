@@ -1,6 +1,6 @@
 ﻿using MauiReactor.Parameters;
 
-namespace ReactorRouterSample.Components;
+namespace ReactorRouterSample.Pages;
 
 /// <summary>
 /// Demo: reading route params (:userId) and query params (?tab=posts) via [Param] RouterContext.

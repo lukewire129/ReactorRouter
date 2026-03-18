@@ -1,6 +1,6 @@
-﻿namespace ReactorRouterSample.Components
+﻿namespace ReactorRouterSample
 {
-    partial class MainPage : Component
+    partial class App : Component
     {
         public override VisualNode Render()
             => ContentPage(new Router());

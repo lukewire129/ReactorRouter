@@ -1,6 +1,7 @@
 ﻿using ReactorRouter;
-using ReactorRouterSample.Components;
+using ReactorRouterSample.Pages;
 using ReactorRouterSample.Resources.Styles;
+using ReactorRouterSample.Shared.Layouts;
 
 namespace ReactorRouterSample
 {
@@ -10,7 +11,7 @@ namespace ReactorRouterSample
         {
             var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiReactorApp<MainPage>(app =>
+                .UseMauiReactorApp<App>(app =>
                     {
                         app.UseTheme<ApplicationTheme>();
                     },
@@ -26,7 +27,7 @@ namespace ReactorRouterSample
                     r.Routes(
                         new RouteDefinition ("/", typeof (RootLayout),
                             // Child routes render inside RootLayout's Outlet
-                            new RouteDefinition ("dashboard", typeof (DashboardLayout),
+                            new RouteDefinition ("dashboard", typeof (MainLayout),
                                 RouteDefinition.Index (typeof (HomePage)),
                                 new RouteDefinition ("settings", typeof (SettingsPage))
                                 { Transition = TransitionType.SlideLeft },
