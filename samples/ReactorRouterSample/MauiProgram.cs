@@ -18,21 +18,24 @@ namespace ReactorRouterSample
                     {
                         System.Diagnostics.Debug.WriteLine(e.ExceptionObject);
                     })
+#if DEBUG
                 .UseMauiReactorHotReload()
+#endif
                 .UseReactorRouter(r =>
                 {
                     r.Routes(
-                        new("/", typeof(RootLayout),
-                            new("dashboard", typeof(DashboardLayout),
-                                RouteDefinition.Index(typeof(HomePage)),
-                                new("settings", typeof(SettingsPage))
-                                    { Transition = TransitionType.SlideLeft },
-                                new("profile/:userId", typeof(ProfilePage))
-                                    { Transition = TransitionType.Fade }
+                        new RouteDefinition ("/", typeof (RootLayout),
+                            // Child routes render inside RootLayout's Outlet
+                            new RouteDefinition ("dashboard", typeof (DashboardLayout),
+                                RouteDefinition.Index (typeof (HomePage)),
+                                new RouteDefinition ("settings", typeof (SettingsPage))
+                                { Transition = TransitionType.SlideLeft },
+                                new RouteDefinition ("profile/:userId", typeof (ProfilePage))
+                                { Transition = TransitionType.Fade }
                             ),
-                            new("login", typeof(LoginPage))
-                                { Transition = TransitionType.Fade },
-                            new("*", typeof(NotFoundPage))
+                            new RouteDefinition ("login", typeof (LoginPage))
+                            { Transition = TransitionType.Fade },
+                            new RouteDefinition ("*", typeof (NotFoundPage)) // Fallback route
                         )
                     );
                     r.InitialPath("/dashboard");
