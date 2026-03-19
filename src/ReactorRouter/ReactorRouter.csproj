@@ -22,6 +22,10 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
   
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <ItemGroup Condition="$([System.String]::Copy('$(TargetFramework)').StartsWith('net9.0'))">
     <PackageReference Include="Reactor.Maui" Version="3.0.40" />
   </ItemGroup>
