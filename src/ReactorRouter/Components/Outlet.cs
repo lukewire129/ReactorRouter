@@ -20,7 +20,8 @@ public partial class Outlet : Component<OutletState>
             s.Transition = _transition;
             s.AnimationDuration = _duration;
             s.AssignedDepth = NavigationService.Instance.RegisterOutlet(
-                new OutletRegistration(UpdateRoute));
+                new OutletRegistration((type, @params, query, forceReload) =>
+                    UpdateRoute(type, @params, query, forceReload)));
         });
     }
 
@@ -30,10 +31,21 @@ public partial class Outlet : Component<OutletState>
             NavigationService.Instance.UnregisterOutlet(State.AssignedDepth);
     }
 
-    internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query)
+    internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query, bool forceReload = false)
     {
         if (componentType?.FullName == State.CurrentType?.FullName)
         {
+            if (forceReload && componentType != null)
+            {
+                var savedType = componentType;
+                SetState(s => { s.CurrentType = null; s.Params = @params; s.Query = query; });
+                MauiControls.Application.Current!.Dispatcher.Dispatch(() =>
+                {
+                    SetState(s => { s.CurrentType = savedType; });
+                });
+                return;
+            }
+
             SetState(s => { s.Params = @params; s.Query = query; });
             return;
         }

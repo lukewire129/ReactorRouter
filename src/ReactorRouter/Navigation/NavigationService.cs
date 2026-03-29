@@ -59,7 +59,7 @@ public sealed class NavigationService
         if (chainIndex < _currentMatchChain.Length)
         {
             var match = _currentMatchChain[chainIndex];
-            registration.UpdateRoute(match.ComponentType, _currentMergedParams, _currentQuery);
+            registration.UpdateRoute(match.ComponentType, _currentMergedParams, _currentQuery, false);
         }
 
         return depth;
@@ -82,6 +82,12 @@ public sealed class NavigationService
         DispatchNavigation(path);
     }
 
+    /// <summary>Reload the current page, forcing all components to re-initialize.</summary>
+    public void Reload()
+    {
+        DispatchNavigation(CurrentPath, forceReload: true);
+    }
+
     /// <summary>Navigate back in history.</summary>
     public void GoBack()
     {
@@ -91,7 +97,7 @@ public sealed class NavigationService
         DispatchNavigation(previous);
     }
 
-    private void DispatchNavigation(string path)
+    private void DispatchNavigation(string path, bool forceReload = false)
     {
         CurrentPath = path;
         var (_, query) = RouteParser.Parse(path);
@@ -126,7 +132,7 @@ public sealed class NavigationService
             if (_outlets.TryGetValue(depth, out var outlet))
             {
                 var match = matchChain[depth + 1];
-                outlet.UpdateRoute(match.ComponentType, mergedParams, query);
+                outlet.UpdateRoute(match.ComponentType, mergedParams, query, forceReload);
             }
         }
 
@@ -134,7 +140,7 @@ public sealed class NavigationService
         foreach (var key in _outlets.Keys.Where(k => k >= outletCount))
         {
             if (_outlets.TryGetValue(key, out var outlet))
-                outlet.UpdateRoute(null, RouteParams.Empty, RouteQuery.Empty);
+                outlet.UpdateRoute(null, RouteParams.Empty, RouteQuery.Empty, false);
         }
     }
 }
@@ -143,13 +149,13 @@ public sealed class NavigationService
 public sealed class OutletRegistration
 {
     public int Depth { get; internal set; }
-    internal Action<Type?, RouteParams, RouteQuery> UpdateRouteCallback { get; }
+    internal Action<Type?, RouteParams, RouteQuery, bool> UpdateRouteCallback { get; }
 
-    public OutletRegistration(Action<Type?, RouteParams, RouteQuery> updateCallback)
+    public OutletRegistration(Action<Type?, RouteParams, RouteQuery, bool> updateCallback)
     {
         UpdateRouteCallback = updateCallback;
     }
 
-    internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query) =>
-        UpdateRouteCallback(componentType, @params, query);
+    internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query, bool forceReload) =>
+        UpdateRouteCallback(componentType, @params, query, forceReload);
 }
