@@ -5,48 +5,79 @@ namespace ReactorRouter.Components;
 /// Top-level routing component. Manages navigation state and provides RouterContext
 /// to all descendant components via [Param] IParameter&lt;RouterContext&gt;.
 ///
-/// Usage:
+/// Usage (single / default router):
 /// <code>
 /// new Router()
 ///     .Routes(routes)
 ///     .InitialPath("/dashboard")
+/// </code>
+///
+/// Usage (named router for multi-router layouts):
+/// <code>
+/// new Router()
+///     .Name("detail")
+///     .Routes(detailRoutes)
+///     .InitialPath("/empty")
 /// </code>
 /// </summary>
 public partial class Router : Component<RouterState>
 {
     [Prop] private IReadOnlyList<RouteDefinition> _routes = [];
     [Prop] private string _initialPath = "/";
+    [Prop] private string _name = "default";
 
     [Param] IParameter<RouterContext> _routerContext;
 
+    // Holds the per-router instance for the lifetime of this component.
+    // Plain field — survives re-renders since the component instance is reused by MauiReactor.
+    private RouterInstance? _instance;
+
     protected override void OnMounted()
     {
-        // UseReactorRouter() config takes priority; fall back to [Prop] for backwards compat
-        var config = ReactorRouterConfig.Current;
-        var routes = config?.RouteDefinitions ?? _routes;
-        var initialPath = config?.InitialRoute ?? _initialPath;
+        IReadOnlyList<RouteDefinition> routes;
+        string initialPath;
 
-        NavigationService.Instance.Initialize(routes);
-        NavigationService.Instance.ContextChanged += OnContextChanged;
+        // UseReactorRouter() config applies only to the default router for backwards compat.
+        if (_name == "default")
+        {
+            var config = ReactorRouterConfig.Current;
+            routes = config?.RouteDefinitions ?? _routes;
+            initialPath = config?.InitialRoute ?? _initialPath;
+        }
+        else
+        {
+            routes = _routes;
+            initialPath = _initialPath;
+        }
 
-        NavigationService.Instance.NavigateInitial(initialPath);
+        _instance = new RouterInstance(_name);
+        _instance.Initialize(routes);
+        _instance.ContextChanged += OnContextChanged;
+
+        NavigationService.Instance.Register(_instance);
+        _instance.NavigateInitial(initialPath);
     }
 
     protected override void OnWillUnmount()
     {
-        NavigationService.Instance.ContextChanged -= OnContextChanged;
+        if (_instance != null)
+        {
+            _instance.ContextChanged -= OnContextChanged;
+            NavigationService.Instance.Unregister(_name);
+            _instance = null;
+        }
     }
 
     private void OnContextChanged(RouterContext context)
     {
         SetState(s => s.Context = context);
-        // IParameter<T>.Set(Action<T>) mutates the shared instance in-place
         _routerContext.Set(ctx =>
         {
             ctx.MatchChain = context.MatchChain;
             ctx.Params = context.Params;
             ctx.Query = context.Query;
             ctx.CurrentPath = context.CurrentPath;
+            ctx.RouterName = context.RouterName;
         });
     }
 
@@ -54,11 +85,9 @@ public partial class Router : Component<RouterState>
     {
         var chain = State.Context.MatchChain;
 
-        // 루트 컴포넌트(depth=0) 렌더 — Outlet들은 NavigationService에 등록해 알아서 업데이트됨
         if (chain.Length == 0)
             return ContentView();
 
-        var rootType = chain[0].ComponentType;
-        return ComponentFactory.Create(rootType);
+        return ComponentFactory.Create(chain[0].ComponentType);
     }
 }

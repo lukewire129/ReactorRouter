@@ -30,8 +30,18 @@ public sealed class RouteDefinition
     /// <summary>If true, this route matches when parent path is exact (no child segment).</summary>
     public bool IsIndex { get; init; }
 
-    /// <summary>Navigation guard: return false to block navigation to this route.</summary>
-    public Func<RouteParams, RouteQuery, Task<bool>>? Guard { get; init; }
+    /// <summary>
+    /// Synchronous navigation guard. Return <see cref="GuardResult.Allow"/> to permit,
+    /// <see cref="GuardResult.Redirect"/> to redirect, or <see cref="GuardResult.Block"/> to cancel.
+    /// Evaluated before <see cref="AsyncGuard"/> when both are set.
+    /// </summary>
+    public Func<RouteGuardContext, GuardResult>? Guard { get; init; }
+
+    /// <summary>
+    /// Asynchronous navigation guard. Evaluated when <see cref="Guard"/> is null.
+    /// Use for guards that require async operations (e.g. API calls, database checks).
+    /// </summary>
+    public Func<RouteGuardContext, Task<GuardResult>>? AsyncGuard { get; init; }
 
     /// <summary>Creates an index route (matches parent path exactly).</summary>
     public static RouteDefinition Index(Type componentType) =>
@@ -42,6 +52,7 @@ public sealed class RouteDefinition
         {
             IsIndex = IsIndex,
             Guard = Guard,
+            AsyncGuard = AsyncGuard,
             Transition = transition,
             TransitionDuration = duration
         };

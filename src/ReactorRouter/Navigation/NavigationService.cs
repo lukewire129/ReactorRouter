@@ -3,8 +3,10 @@ using System.Collections.Concurrent;
 namespace ReactorRouter.Navigation;
 
 /// <summary>
-/// Singleton navigation service. Manages history stack, route matching,
-/// and dispatches route updates to registered Outlet instances.
+/// Singleton façade for all router instances.
+/// Maintains a registry of named <see cref="RouterInstance"/>s and exposes the public
+/// navigation API. Methods without a <c>routerName</c> parameter target the "default" router,
+/// preserving full backwards compatibility.
 /// </summary>
 public sealed class NavigationService
 {
@@ -12,144 +14,136 @@ public sealed class NavigationService
         new(() => new NavigationService());
 
     public static NavigationService Instance => _instance.Value;
-   
+
     private NavigationService() { }
 
-    // Route definitions — set once by Router on mount
-    private IReadOnlyList<RouteDefinition> _routes = [];
+    private readonly ConcurrentDictionary<string, RouterInstance> _routers = new();
 
-    // Navigation history stack
-    private readonly Stack<string> _history = new();
+    // ── Navigation events ──────────────────────────────────────────────────
 
-    // Registered outlets by depth (depth → outlet callback)
-    private readonly ConcurrentDictionary<int, OutletRegistration> _outlets = new();
+    /// <summary>
+    /// Raised after guard evaluation, before the route transition.
+    /// Set <see cref="BeforeNavigationEventArgs.Cancel"/> to true to abort.
+    /// </summary>
+    public event EventHandler<BeforeNavigationEventArgs>? OnBeforeNavigate;
 
-    // Current navigation state — used to immediately hydrate late-mounting Outlets
-    private RouteMatch[] _currentMatchChain = [];
-    private RouteParams _currentMergedParams = RouteParams.Empty;
-    private RouteQuery _currentQuery = RouteQuery.Empty;
+    /// <summary>Raised after the route transition completes.</summary>
+    public event EventHandler<NavigationEventArgs>? OnAfterNavigate;
 
-    // Router subscribes to get context updates → triggers SetState
-    public event Action<RouterContext>? ContextChanged;
+    internal void RaiseBeforeNavigate(BeforeNavigationEventArgs args) =>
+        OnBeforeNavigate?.Invoke(this, args);
 
-    public string CurrentPath { get; private set; } = "/";
-    public bool CanGoBack => _history.Count > 1;
-    public RouteParams CurrentParams => _currentMergedParams;
-    public RouteQuery CurrentQuery => _currentQuery;
-    /// <summary>Called by Router on mount to supply the route definitions.</summary>
-    internal void Initialize(IReadOnlyList<RouteDefinition> routes)
-    {
-        _routes = routes;
-    }
+    internal void RaiseAfterNavigate(NavigationEventArgs args) =>
+        OnAfterNavigate?.Invoke(this, args);
 
-    /// <summary>Called by Outlet when it mounts — returns the assigned depth.</summary>
-    internal int RegisterOutlet(OutletRegistration registration)
-    {
-        // Depth is assigned sequentially: find first unused depth
-        int depth = 0;
-        while (!_outlets.TryAdd(depth, registration))
-            depth++;
+    // ── Registry ───────────────────────────────────────────────────────────
 
-        registration.Depth = depth;
+    internal void Register(RouterInstance instance) =>
+        _routers[instance.Name] = instance;
 
-        // If navigation already happened before this Outlet mounted (initial render),
-        // immediately hydrate it with the current state so it doesn't start blank.
-        // Outlet at depth N renders matchChain[N+1] because Router renders matchChain[0] directly.
-        var chainIndex = depth + 1;
-        if (chainIndex < _currentMatchChain.Length)
-        {
-            var match = _currentMatchChain[chainIndex];
-            registration.UpdateRoute(match.ComponentType, _currentMergedParams, _currentQuery);
-        }
+    internal void Unregister(string name) =>
+        _routers.TryRemove(name, out _);
 
-        return depth;
-    }
+    /// <summary>Returns true if a router with the given name is currently mounted.</summary>
+    public bool HasRouter(string routerName) => _routers.ContainsKey(routerName);
 
-    internal void UnregisterOutlet(int depth) =>
-        _outlets.TryRemove(depth, out _);
+    // ── Outlet registration (called by Outlet component) ──────────────────
 
-    /// <summary>Navigate to the given path (with optional query string).</summary>
-    public void NavigateTo(string path)
-    {
-        if (path == CurrentPath) return;
-        _history.Push(path);
-        DispatchNavigation(path);
-    }
+    internal int RegisterOutlet(string routerName, OutletRegistration registration) =>
+        GetRouter(routerName).RegisterOutlet(registration);
 
-    internal void NavigateInitial(string path)
-    {
-        _history.Push(path);
-        DispatchNavigation(path);
-    }
+    internal void UnregisterOutlet(string routerName, int depth) =>
+        GetRouter(routerName).UnregisterOutlet(depth);
 
-    /// <summary>Navigate back in history.</summary>
-    public void GoBack()
-    {
-        if (!CanGoBack) return;
-        _history.Pop(); // discard current
-        var previous = _history.Peek();
-        DispatchNavigation(previous);
-    }
+    // ── Public API — default router (backwards compatible) ─────────────────
 
-    private void DispatchNavigation(string path)
-    {
-        CurrentPath = path;
-        var (_, query) = RouteParser.Parse(path);
-        var matchChain = RouteMatcher.Match(path, _routes) ?? [];
+    /// <summary>Current path of the default router.</summary>
+    public string CurrentPath => Default.CurrentPath;
 
-        // Merge all params from the chain
-        var mergedParams = matchChain.Length > 0
-            ? matchChain[^1].Params
-            : RouteParams.Empty;
+    /// <summary>True when the default router can navigate back.</summary>
+    public bool CanGoBack => Default.CanGoBack;
 
-        // Cache current state so late-mounting Outlets can hydrate themselves
-        _currentMatchChain = matchChain;
-        _currentMergedParams = mergedParams;
-        _currentQuery = query;
+    /// <summary>Current merged route params of the default router.</summary>
+    public RouteParams CurrentParams => Default.CurrentParams;
 
-        var context = new RouterContext
-        {
-            CurrentPath = path,
-            MatchChain = matchChain,
-            Params = mergedParams,
-            Query = query
-        };
+    /// <summary>Current query params of the default router.</summary>
+    public RouteQuery CurrentQuery => Default.CurrentQuery;
 
-        // Notify Router (triggers its SetState)
-        ContextChanged?.Invoke(context);
+    /// <summary>Navigate the default router to <paramref name="path"/>.</summary>
+    public void NavigateTo(string path) => Default.NavigateTo(path);
 
-        // Dispatch to each registered outlet.
-        // Outlet at depth N renders matchChain[N+1] because Router renders matchChain[0] directly.
-        var outletCount = matchChain.Length - 1;
-        for (int depth = 0; depth < outletCount; depth++)
-        {
-            if (_outlets.TryGetValue(depth, out var outlet))
-            {
-                var match = matchChain[depth + 1];
-                outlet.UpdateRoute(match.ComponentType, mergedParams, query);
-            }
-        }
+    /// <summary>Navigate the default router to <paramref name="path"/>, optionally force-reloading.</summary>
+    public void NavigateTo(string path, bool forceReload) => Default.NavigateTo(path, forceReload);
 
-        // Clear outlets deeper than the new match chain
-        foreach (var key in _outlets.Keys.Where(k => k >= outletCount))
-        {
-            if (_outlets.TryGetValue(key, out var outlet))
-                outlet.UpdateRoute(null, RouteParams.Empty, RouteQuery.Empty);
-        }
-    }
+    /// <summary>Navigate the default router back one step.</summary>
+    public void GoBack() => Default.GoBack();
+
+    /// <summary>Reload the current route on the default router.</summary>
+    public void Reload() => Default.Reload();
+
+    /// <summary>Reload the current route on the default router, optionally skipping guard evaluation.</summary>
+    public void Reload(bool skipGuard) => Default.Reload(skipGuard);
+
+    // ── Public API — named router ──────────────────────────────────────────
+
+    /// <summary>Navigate a named router to <paramref name="path"/>.</summary>
+    public void NavigateTo(string routerName, string path) =>
+        GetRouter(routerName).NavigateTo(path);
+
+    /// <summary>Navigate a named router to <paramref name="path"/>, optionally force-reloading.</summary>
+    public void NavigateTo(string routerName, string path, bool forceReload) =>
+        GetRouter(routerName).NavigateTo(path, forceReload);
+
+    /// <summary>Navigate a named router back one step.</summary>
+    public void GoBack(string routerName) => GetRouter(routerName).GoBack();
+
+    /// <summary>Reload the current route on a named router.</summary>
+    public void Reload(string routerName) => GetRouter(routerName).Reload();
+
+    /// <summary>Reload the current route on a named router, optionally skipping guard evaluation.</summary>
+    public void Reload(string routerName, bool skipGuard) => GetRouter(routerName).Reload(skipGuard);
+
+    // ── Queries ────────────────────────────────────────────────────────────
+
+    /// <summary>Returns the current path of the specified router (defaults to "default").</summary>
+    public string GetCurrentPath(string routerName = "default") =>
+        GetRouter(routerName).CurrentPath;
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    private RouterInstance Default =>
+        _routers.TryGetValue("default", out var r)
+            ? r
+            : throw new InvalidOperationException(
+                "No default router is mounted. Ensure a Router component is in the component tree.");
+
+    private RouterInstance GetRouter(string name) =>
+        _routers.TryGetValue(name, out var r)
+            ? r
+            : throw new InvalidOperationException(
+                $"Router '{name}' not found. Ensure the Router component with Name(\"{name}\") is mounted.");
+
+    // ── Internal initial navigation (called by Router on mount) ───────────
+
+    internal void NavigateInitial(string routerName, string path) =>
+        GetRouter(routerName).NavigateInitial(path);
 }
 
-/// <summary>Registration entry for an Outlet at a given depth.</summary>
+/// <summary>Registration entry for an Outlet at a given depth within a router.</summary>
 public sealed class OutletRegistration
 {
     public int Depth { get; internal set; }
-    internal Action<Type?, RouteParams, RouteQuery> UpdateRouteCallback { get; }
+    internal Action<Type?, RouteParams, RouteQuery, bool> UpdateRouteCallback { get; }
 
-    public OutletRegistration(Action<Type?, RouteParams, RouteQuery> updateCallback)
+    public OutletRegistration(Action<Type?, RouteParams, RouteQuery, bool> updateCallback)
     {
         UpdateRouteCallback = updateCallback;
     }
 
-    internal void UpdateRoute(Type? componentType, RouteParams @params, RouteQuery query) =>
-        UpdateRouteCallback(componentType, @params, query);
+    internal void UpdateRoute(
+        Type? componentType,
+        RouteParams @params,
+        RouteQuery query,
+        bool forceRemount = false) =>
+        UpdateRouteCallback(componentType, @params, query, forceRemount);
 }
