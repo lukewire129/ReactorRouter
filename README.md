@@ -10,6 +10,9 @@ ReactorRouter is a lightweight routing library for .NET MAUI Reactor application
 - **Nested Routes**: Supports deeply nested layouts with `Outlet`.
 - **Transitions**: Built-in support for page transitions (Fade, Slide, etc.).
 - **Navigation**: Simple API for programmatic navigation.
+- **Component Reload**: Instantly remount a component using `NavigationService.Reload()`.
+- **Route Guard & Navigation Events**: Add guards to routes to block, redirect, or allow navigation, and handle navigation lifecycle events (`OnBeforeNavigate`, `OnAfterNavigate`).
+- **Named Routers (Multi-Router)**: Manage multiple independent navigation stacks.
 
 ## Installation
 
@@ -126,12 +129,68 @@ new Link().To("/dashboard/settings")
 // Or with custom content
 new Link().To("/login")
     .Child(Label("Go to Login"))
+// Named Router (Multi-Router) Example
+new Link().To("/item/42").Router("detail")
 ```
 
 **Programmatic Navigation:**
 
 ```csharp
 NavigationService.Instance.NavigateTo("/profile/123");
+```
+
+**Component Reload:**
+
+Remount the current page/component instantly:
+
+```csharp
+Button("Reload").OnClicked(() => NavigationService.Instance.Reload())
+```
+
+### 5. Route Guards & Navigation Events
+
+You can add guards to routes to block, redirect, or allow navigation, and handle navigation lifecycle events globally.
+
+**Route Guard Example:**
+
+```csharp
+new RouteDefinition("/admin", typeof(AdminPage))
+{
+    Guard = ctx =>
+        ctx.QueryParams.GetOrDefault("token", "") == "secret"
+            ? new GuardResult.Allow()
+            : new GuardResult.Block()
+}
+```
+
+**Async Guard Example:**
+
+```csharp
+new RouteDefinition("/profile", typeof(ProfilePage))
+{
+    AsyncGuard = async ctx =>
+    {
+        var isAuthenticated = await AuthService.CheckAsync();
+        return isAuthenticated ? new GuardResult.Allow() : new GuardResult.Redirect("/login");
+    }
+}
+```
+
+**Navigation Events:**
+
+You can subscribe to navigation lifecycle events globally:
+
+```csharp
+NavigationService.Instance.OnBeforeNavigate += (sender, args) =>
+{
+    // Cancel navigation if needed
+    if (args.ToPath == "/restricted") args.Cancel = true;
+};
+
+NavigationService.Instance.OnAfterNavigate += (sender, args) =>
+{
+    // Handle analytics, logging, etc.
+};
 ```
 
 ## Route Parameters
